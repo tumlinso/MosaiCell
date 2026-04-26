@@ -1,0 +1,117 @@
+#include <MosaiCell/runtime.hh>
+
+#include <cstdio>
+#include <cstring>
+
+namespace mosaicell {
+
+namespace {
+
+void set_status(status *out, int code, const char *message) {
+    if (out == nullptr) return;
+    out->code = code;
+    if (message == nullptr) message = "";
+    std::snprintf(out->message, sizeof(out->message), "%s", message);
+}
+
+int streq(const char *a, const char *b) {
+    if (a == nullptr || b == nullptr) return 0;
+    return std::strcmp(a, b) == 0;
+}
+
+int starts_with(const char *value, const char *prefix) {
+    if (value == nullptr || prefix == nullptr) return 0;
+    while (*prefix != '\0') {
+        if (*value == '\0' || *value != *prefix) return 0;
+        ++value;
+        ++prefix;
+    }
+    return 1;
+}
+
+} // namespace
+
+const char *version() {
+    return "0.1.0";
+}
+
+void clear_status(status *out) {
+    set_status(out, status_ok, "");
+}
+
+int validate_raw_count_state(const preprocess_state_view *state, status *out) {
+    if (state == nullptr) {
+        set_status(out, status_invalid_argument, "missing preprocess state");
+        return 0;
+    }
+    if (state->preprocess_available != 0u) {
+        set_status(out, status_already_preprocessed, "dataset already contains persisted preprocess metadata");
+        return 0;
+    }
+    if (state->raw_counts_available == 0u) {
+        set_status(out, status_not_raw_counts, "raw counts are not available");
+        return 0;
+    }
+    if (state->processed_matrix_available != 0u) {
+        set_status(out, status_not_raw_counts, "active matrix is already processed");
+        return 0;
+    }
+    if (state->matrix_state != nullptr && !streq(state->matrix_state, "raw_counts")) {
+        set_status(out, status_not_raw_counts, "matrix_state is not raw_counts");
+        return 0;
+    }
+    set_status(out, status_ok, "");
+    return 1;
+}
+
+int reject_double_preprocess(const preprocess_state_view *state, status *out) {
+    if (state == nullptr) {
+        set_status(out, status_invalid_argument, "missing preprocess state");
+        return 0;
+    }
+    if (state->preprocess_available != 0u) {
+        set_status(out, status_already_preprocessed, "preprocess metadata already exists");
+        return 0;
+    }
+    set_status(out, status_ok, "");
+    return 1;
+}
+
+int mark_mito_features_by_prefix(const char * const *feature_names,
+                                 std::uint32_t feature_count,
+                                 const char *prefix,
+                                 unsigned char *gene_flags) {
+    if (gene_flags == nullptr) return 0;
+    const char *active_prefix = prefix != nullptr ? prefix : "MT-";
+    for (std::uint32_t i = 0u; i < feature_count; ++i) {
+        const char *name = feature_names != nullptr ? feature_names[i] : nullptr;
+        if (starts_with(name, active_prefix)) gene_flags[i] = (unsigned char) (gene_flags[i] | gene_flag_mito);
+    }
+    return 1;
+}
+
+int plan_cellshard_adapter_stage(const adapter_source_view *source,
+                                 cellshard_stage_plan *plan,
+                                 status *out) {
+    if (source == nullptr || plan == nullptr) {
+        set_status(out, status_invalid_argument, "missing adapter source or output plan");
+        return 0;
+    }
+    if (!streq(source->format, "h5ad") && !streq(source->format, "mtx")) {
+        set_status(out, status_unsupported_layout, "unsupported adapter source format");
+        return 0;
+    }
+    if (source->allow_processed == 0u && !streq(source->matrix_source, "raw") && !streq(source->matrix_source, "counts")) {
+        set_status(out, status_not_raw_counts, "adapter source must identify a raw/count matrix");
+        return 0;
+    }
+    plan->layout = native_sparse_blocked_ell;
+    plan->value_type = value_precision_fp16;
+    plan->accumulator_type = value_precision_fp32_accumulator;
+    plan->adapt_to_cellshard_first = 1u;
+    plan->direct_external_kernels = 0u;
+    set_status(out, status_ok, "");
+    return 1;
+}
+
+} // namespace mosaicell
