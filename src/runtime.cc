@@ -1,9 +1,9 @@
-#include <MosaiCell/runtime.hh>
+#include <CellShardPreprocess/runtime.hh>
 
 #include <cstdio>
 #include <cstring>
 
-namespace mosaicell {
+namespace cellshard_preprocess {
 
 namespace {
 
@@ -27,6 +27,27 @@ int starts_with(const char *value, const char *prefix) {
         ++prefix;
     }
     return 1;
+}
+
+int rule_metadata_matches(const qc_feature_annotation_view *features,
+                          const qc_group_rule_view *rule,
+                          std::uint32_t index) {
+    const char *type = features->feature_types != nullptr ? features->feature_types[index] : nullptr;
+    const char *modality = features->modalities != nullptr ? features->modalities[index] : nullptr;
+    if (rule->feature_type != nullptr && !streq(type, rule->feature_type)) return 0;
+    if (rule->modality != nullptr && !streq(modality, rule->modality)) return 0;
+    return 1;
+}
+
+int rule_name_matches(const qc_feature_annotation_view *features,
+                      const qc_group_rule_view *rule,
+                      std::uint32_t index) {
+    const char *id = features->feature_ids != nullptr ? features->feature_ids[index] : nullptr;
+    const char *name = features->feature_names != nullptr ? features->feature_names[index] : nullptr;
+    if (rule->prefix != nullptr && (starts_with(name, rule->prefix) || starts_with(id, rule->prefix))) return 1;
+    if (rule->exact_feature_id != nullptr && streq(id, rule->exact_feature_id)) return 1;
+    if (rule->exact_feature_name != nullptr && streq(name, rule->exact_feature_name)) return 1;
+    return rule->prefix == nullptr && rule->exact_feature_id == nullptr && rule->exact_feature_name == nullptr;
 }
 
 } // namespace
@@ -90,6 +111,50 @@ int mark_mito_features_by_prefix(const char * const *feature_names,
     return 1;
 }
 
+int compile_qc_feature_group_masks(const qc_feature_annotation_view *features,
+                                   const qc_group_rule_view *rules,
+                                   std::uint32_t rule_count,
+                                   const std::uint32_t *explicit_masks,
+                                   std::uint32_t *feature_group_masks) {
+    if (features == nullptr || feature_group_masks == nullptr) return 0;
+    for (std::uint32_t i = 0u; i < features->feature_count; ++i) {
+        feature_group_masks[i] = explicit_masks != nullptr ? explicit_masks[i] : 0u;
+    }
+    if (rules == nullptr || rule_count == 0u) return 1;
+    for (std::uint32_t rule_idx = 0u; rule_idx < rule_count; ++rule_idx) {
+        const qc_group_rule_view *rule = rules + rule_idx;
+        if (rule->group_index >= CELLSHARD_PREPROCESS_MAX_QC_GROUPS) return 0;
+        const std::uint32_t bit = qc_group_bit(rule->group_index);
+        for (std::uint32_t feature = 0u; feature < features->feature_count; ++feature) {
+            if (rule_metadata_matches(features, rule, feature) && rule_name_matches(features, rule, feature)) {
+                feature_group_masks[feature] |= bit;
+            }
+        }
+    }
+    return 1;
+}
+
+int compile_default_qc_feature_group_masks(const qc_feature_annotation_view *features,
+                                           const std::uint32_t *explicit_masks,
+                                           std::uint32_t *feature_group_masks) {
+    const qc_group_rule_view rules[] = {
+        {qc_group_mt, "mt", "MT-", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_mt, "mt", "mt-", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_ribo, "ribo", "RPS", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_ribo, "ribo", "RPL", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_ribo, "ribo", "rps", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_ribo, "ribo", "rpl", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_hb, "hb", "HB", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_hb, "hb", "Hb", nullptr, nullptr, nullptr, nullptr},
+        {qc_group_hb, "hb", "hb", nullptr, nullptr, nullptr, nullptr}
+    };
+    return compile_qc_feature_group_masks(features,
+                                          rules,
+                                          (std::uint32_t) (sizeof(rules) / sizeof(rules[0])),
+                                          explicit_masks,
+                                          feature_group_masks);
+}
+
 int plan_cellshard_adapter_stage(const adapter_source_view *source,
                                  cellshard_stage_plan *plan,
                                  status *out) {
@@ -114,4 +179,4 @@ int plan_cellshard_adapter_stage(const adapter_source_view *source,
     return 1;
 }
 
-} // namespace mosaicell
+} // namespace cellshard_preprocess

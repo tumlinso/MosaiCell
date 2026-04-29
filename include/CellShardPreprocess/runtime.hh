@@ -5,7 +5,9 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace mosaicell {
+#include <CellShardPreprocess/aliases.hh>
+
+namespace cellshard_preprocess {
 
 enum status_code : int {
     status_ok = 0,
@@ -58,6 +60,24 @@ struct cellshard_stage_plan {
     unsigned int direct_external_kernels;
 };
 
+struct qc_feature_annotation_view {
+    const char * const *feature_ids;
+    const char * const *feature_names;
+    const char * const *feature_types;
+    const char * const *modalities;
+    std::uint32_t feature_count;
+};
+
+struct qc_group_rule_view {
+    std::uint32_t group_index;
+    const char *group_name;
+    const char *prefix;
+    const char *exact_feature_id;
+    const char *exact_feature_name;
+    const char *feature_type;
+    const char *modality;
+};
+
 const char *version();
 
 void clear_status(status *out);
@@ -71,8 +91,18 @@ int mark_mito_features_by_prefix(const char * const *feature_names,
                                  const char *prefix,
                                  unsigned char *gene_flags);
 
+int compile_qc_feature_group_masks(const qc_feature_annotation_view *features,
+                                   const qc_group_rule_view *rules,
+                                   std::uint32_t rule_count,
+                                   const std::uint32_t *explicit_masks,
+                                   std::uint32_t *feature_group_masks);
+
+int compile_default_qc_feature_group_masks(const qc_feature_annotation_view *features,
+                                           const std::uint32_t *explicit_masks,
+                                           std::uint32_t *feature_group_masks);
+
 int plan_cellshard_adapter_stage(const adapter_source_view *source,
                                  cellshard_stage_plan *plan,
                                  status *out);
 
-} // namespace mosaicell
+} // namespace cellshard_preprocess

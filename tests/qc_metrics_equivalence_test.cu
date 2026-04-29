@@ -1,4 +1,4 @@
-#include <MosaiCell/preprocess.cuh>
+#include <CellShardPreprocess/preprocess.cuh>
 
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
@@ -42,15 +42,15 @@ int main() {
     view.blockColIdx = d_cols;
     view.val = d_values;
 
-    mosaicell::preprocess_workspace workspace;
-    mosaicell::init(&workspace);
-    if (!mosaicell::setup(&workspace, 0)) return 1;
-    unsigned char flags[4] = {mosaicell::gene_flag_mito, 0u, 0u, 0u};
-    if (!mosaicell::upload_gene_flags(&workspace, 4u, flags)) return 1;
+    cspre::preprocess_workspace workspace;
+    cspre::init(&workspace);
+    if (!cspre::setup(&workspace, 0)) return 1;
+    unsigned char flags[4] = {cspre::gene_flag_mito, 0u, 0u, 0u};
+    if (!cspre::upload_gene_flags(&workspace, 4u, flags)) return 1;
 
-    mosaicell::cell_filter_params filter{1.0f, 1u, 0.90f};
-    mosaicell::cell_metrics_view metrics{};
-    if (!mosaicell::compute_cell_metrics(&view, &workspace, &filter, &metrics)) return 1;
+    cspre::cell_filter_params filter{1.0f, 1u, 0.90f};
+    cspre::cell_metrics_view metrics{};
+    if (!cspre::compute_cell_metrics(&view, &workspace, &filter, &metrics)) return 1;
     if (!check_cuda(cudaStreamSynchronize(workspace.stream), "sync metrics")) return 1;
 
     float total[2] = {}, mito[2] = {}, vmax[2] = {};
@@ -68,7 +68,7 @@ int main() {
     if (detected[0] != 2u || detected[1] != 2u) return 5;
     if (keep[0] == 0u || keep[1] == 0u) return 6;
 
-    mosaicell::clear(&workspace);
+    cspre::clear(&workspace);
     cudaFree(d_values);
     cudaFree(d_cols);
     return 0;
