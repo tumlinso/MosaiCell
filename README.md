@@ -24,9 +24,8 @@ normalization/log1p, gene metrics, and persisted QC naming.
 The native preprocessing ABI also has a fleet workspace for row-sharded
 Blocked-ELL and Sliced-ELL assays. Local multi-GPU execution keeps row-owned cell QC outputs on
 their owning devices, reduces feature summaries onto a leader device, and uses
-CellShard's distributed context for peer access, NCCL-backed local reductions
-when available, and an optional ranked NCCL communicator for extension beyond a
-single host.
+CelleratorDist for peer access, NCCL-backed local reductions when available,
+and an optional ranked NCCL communicator for extension beyond a single host.
 
 ## Build
 

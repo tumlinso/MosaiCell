@@ -74,6 +74,7 @@ target_include_directories(cellshard_preprocess_preprocess PUBLIC
 )
 target_link_libraries(cellshard_preprocess_preprocess PUBLIC
     CellShard::runtime
+    $<BUILD_INTERFACE:Cellerator::dist>
     CUDA::cudart
 )
 target_compile_features(cellshard_preprocess_preprocess PUBLIC cxx_std_17)

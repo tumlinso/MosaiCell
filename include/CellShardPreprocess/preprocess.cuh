@@ -2,7 +2,7 @@
 
 #include <CellShard/formats/blocked_ell.cuh>
 #include <CellShard/runtime/device/sharded_device.cuh>
-#include <CellShard/runtime/distributed/distributed.cuh>
+#include <Cellerator/dist/distributed.cuh>
 #include <CellShard/runtime/mask_groups.cuh>
 #include <CellShardPreprocess/aliases.hh>
 
@@ -14,7 +14,7 @@
 namespace cellshard_preprocess {
 
 namespace cs_device = ::cellshard::device;
-namespace cs_dist = ::cellshard::distributed;
+namespace cs_dist = ::cellerator::dist;
 namespace cs_runtime = ::cellshard::runtime;
 
 static constexpr unsigned int CELLSHARD_PREPROCESS_MAX_QC_GROUPS = 32u;
@@ -153,7 +153,7 @@ struct alignas(16) preprocess_fleet_workspace {
     part_preprocess_result *results;
     void **reduce_scratch;
     std::size_t *reduce_scratch_bytes;
-#if CELLSHARD_HAS_NCCL
+#if CELLERATOR_DIST_HAS_NCCL
     cs_dist::nccl_communicator ranked_nccl;
 #endif
 };

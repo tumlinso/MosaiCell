@@ -1,0 +1,79 @@
+# Build directories
+build/
+build-*/
+cmake-build-*/
+out/
+
+# CMake / build-system output
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+Makefile
+makefile
+GNUmakefile
+*.make
+*.mk
+build.ninja
+*.ninja
+.ninja_deps
+.ninja_log
+Testing/
+
+# Compiler / linker output
+*.o
+*.obj
+*.a
+*.la
+*.lo
+*.so
+*.so.*
+*.dylib
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.iobj
+*.ipdb
+*.out
+*.exe
+
+# CUDA / NVCC / NVHPC generated artifacts
+*.cubin
+*.fatbin
+*.fatbin.c
+*.ptx
+*.gpu
+*.cudafe*
+*.module_id
+*.dlink.o
+*.cpp1.ii
+*.cpp4.ii
+
+# Debugger / crash output
+core
+core.*
+vgcore.*
+*.stackdump
+*.dSYM/
+.gdb_history
+.cuda-gdb_history
+
+# Profiler output
+profile_out/
+nsight/
+*.ncu-rep
+*.nsys-rep
+*.qdrep
+*.nvvp
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+cuda_profile_*
+cuda_profile*.log
+
+# Python cache / bytecode
+__pycache__/
+*.py[cod]

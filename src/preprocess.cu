@@ -460,7 +460,7 @@ int reduce_sum_to_leader_f32(preprocess_fleet_workspace *fleet,
     if (fleet == nullptr || partials == nullptr || leader_index >= fleet->slot_count || (leader_out == nullptr && count != 0u)) return 0;
     if (fleet->slot_count == 0u || count == 0u) return 1;
 
-#if CELLSHARD_HAS_NCCL
+#if CELLERATOR_DIST_HAS_NCCL
     if (fleet->ranked_nccl.ready != 0u) {
         const unsigned int comm_count = fleet->ranked_nccl.device_count;
         std::unique_ptr<const void *[]> sendbufs(new (std::nothrow) const void *[comm_count]);
@@ -630,7 +630,7 @@ void init(preprocess_fleet_workspace *fleet) {
     if (fleet == nullptr) return;
     std::memset(fleet, 0, sizeof(*fleet));
     cs_dist::init(&fleet->local);
-#if CELLSHARD_HAS_NCCL
+#if CELLERATOR_DIST_HAS_NCCL
     cs_dist::init(&fleet->ranked_nccl);
 #endif
 }
@@ -659,7 +659,7 @@ void clear(preprocess_fleet_workspace *fleet) {
             }
         }
     }
-#if CELLSHARD_HAS_NCCL
+#if CELLERATOR_DIST_HAS_NCCL
     cs_dist::clear(&fleet->ranked_nccl);
 #endif
     std::free(fleet->reduce_scratch);
@@ -735,7 +735,7 @@ int setup_fleet(preprocess_fleet_workspace *fleet, const preprocess_fleet_config
         }
     }
 
-#if CELLSHARD_HAS_NCCL
+#if CELLERATOR_DIST_HAS_NCCL
     if (config != nullptr && config->ranked_nccl != nullptr && config->ranked_nccl->unique_id != nullptr) {
         if (config->ranked_nccl->local_world_ranks == nullptr
             || config->ranked_nccl->world_size <= 0
